@@ -22,9 +22,13 @@ const supported =
   CSS.supports("backdrop-filter", "blur(1px)");
 
 let enabled = supported;
+let filterSeq = 0;
 const filters = new Map<string, string>();
 const tracked = new Set<HTMLElement>();
 const lensBoxes = new Map<string, { x: number; y: number; w: number; h: number }>();
+/** Lens size watchers, disconnected once their container leaves the DOM (re-renders replace it). */
+const lensObservers = new Map<HTMLElement, ResizeObserver>();
+const MAX_FILTERS = 24;
 let defs: SVGDefsElement | null = null;
 let ro: ResizeObserver | null = null;
 const reduceTransparency = typeof matchMedia !== "undefined" ? matchMedia("(prefers-reduced-transparency: reduce)") : null;
@@ -97,7 +101,17 @@ function filterFor(w: number, h: number, r: number, mode: "bevel" | "dome", chro
   const key = `${w}x${h}r${Math.round(r)}${mode}${chroma ? "c" : ""}`;
   const hit = filters.get(key);
   if (hit) return hit;
-  const id = `lg${filters.size}`;
+  // Each filter holds a bitmap; keep only a bounded set (oldest first out).
+  if (filters.size >= MAX_FILTERS) {
+    const [oldKey, oldId] = filters.entries().next().value as [string, string];
+    filters.delete(oldKey);
+    document.getElementById(oldId)?.remove();
+    // Elements still pointing at the evicted filter get a fresh one.
+    tracked.forEach((el) => {
+      if (el.style.backdropFilter.includes(`#${oldId})`)) queueMicrotask(() => apply(el));
+    });
+  }
+  const id = `lg${++filterSeq}`;
   const f = document.createElementNS(NS, "filter");
   f.id = id;
   for (const [k, v] of Object.entries({ "color-interpolation-filters": "sRGB", filterUnits: "userSpaceOnUse", primitiveUnits: "userSpaceOnUse", x: 0, y: 0, width: w, height: h }))
@@ -185,7 +199,11 @@ function attachLens(container: HTMLElement) {
     if (key) lensBoxes.set(key, box);
   };
   place(true);
-  new ResizeObserver(() => place(false)).observe(container);
+  if (typeof ResizeObserver !== "undefined") {
+    const obs = new ResizeObserver(() => place(false));
+    obs.observe(container);
+    lensObservers.set(container, obs);
+  }
 }
 
 export const LiquidGlass = {
@@ -220,6 +238,10 @@ export const LiquidGlass = {
     for (const el of [...tracked]) if (!el.isConnected) {
       tracked.delete(el);
       ro?.unobserve(el);
+    }
+    for (const [c, obs] of lensObservers) if (!c.isConnected) {
+      obs.disconnect();
+      lensObservers.delete(c);
     }
     if (supported) root.querySelectorAll<HTMLElement>("[data-glass], [data-refract]").forEach(track);
     root.querySelectorAll<HTMLElement>("[data-lens]").forEach(attachLens);

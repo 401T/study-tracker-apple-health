@@ -137,7 +137,7 @@
   --glass-press-glow: rgba(255, 255, 255, 0.55);
   --glass-opaque: #f9f9fb;          /* Reduce Transparency fallback */
   --scrim: rgba(0, 0, 0, 0.32);
-  --scroll-edge: rgba(238, 241, 248, 0.55);
+  --scroll-edge: rgba(238, 241, 248, 0.75);
 
   /* ---- Motion ---- */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
@@ -222,7 +222,7 @@
     --glass-press-glow: rgba(255, 255, 255, 0.18);
     --glass-opaque: #242426;
     --scrim: rgba(0, 0, 0, 0.55);
-    --scroll-edge: rgba(5, 6, 10, 0.5);
+    --scroll-edge: rgba(5, 6, 10, 0.7);
   }
 }
 
@@ -282,7 +282,7 @@
   --glass-press-glow: rgba(255, 255, 255, 0.18);
   --glass-opaque: #242426;
   --scrim: rgba(0, 0, 0, 0.55);
-  --scroll-edge: rgba(5, 6, 10, 0.5);
+  --scroll-edge: rgba(5, 6, 10, 0.7);
 }
 
 /* Increase Contrast */

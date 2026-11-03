@@ -647,3 +647,57 @@ details.history[open] summary { margin-bottom: 10px; }
 
 .accessory { background: var(--bar-tint); box-shadow: var(--glass-shadow), inset 0 1px 0.5px var(--lg-hi), inset 0 -1px 1px var(--lg-lo), inset 0 0 0 0.5px var(--lg-edge); }
 .accessory::before { display: none; }
+
+/* ==========================================================================
+   v4 — mobile stability + labels that never wrap.
+   Background blur is limited to the floating layer (bars, FAB, accessory,
+   sheets, dialogs, toasts, top-bar buttons). Each blurred element is a GPU
+   layer; dozens of blurred cards in a long list exhausted memory on iPhone.
+   The wallpaper is already soft, so translucent cards look the same unblurred.
+   ========================================================================== */
+.card, .list, .chip, .btn, .round-button {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+:root { --color-card: rgba(255, 255, 255, 0.7); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --color-card: rgba(255, 255, 255, 0.085); } }
+:root[data-theme="dark"] { --color-card: rgba(255, 255, 255, 0.085); }
+.chip, .btn:not(.primary):not(.destructive-fill), .round-button:not(.primary) { background: var(--color-card); }
+.sheet .btn:not(.primary):not(.destructive-fill), .sheet .round-button:not(.primary), .dialog .btn:not(.primary):not(.destructive-fill) { background: var(--color-fill-secondary); }
+
+/* Wallpaper: gradients only (no filter blur, which re-rasterized huge layers). */
+.wallpaper { contain: strict; transform: translateZ(0); }
+.wallpaper i { filter: none; }
+.wallpaper .b1 { background: radial-gradient(closest-side, var(--blob1), color-mix(in srgb, var(--blob1) 40%, transparent) 45%, transparent); }
+.wallpaper .b2 { background: radial-gradient(closest-side, var(--blob2), color-mix(in srgb, var(--blob2) 40%, transparent) 45%, transparent); }
+.wallpaper .b3 { background: radial-gradient(closest-side, var(--blob3), color-mix(in srgb, var(--blob3) 40%, transparent) 45%, transparent); }
+.wallpaper .b4 { background: radial-gradient(closest-side, var(--blob4), color-mix(in srgb, var(--blob4) 40%, transparent) 45%, transparent); }
+
+/* Scroll edge: one blur layer instead of three. */
+.edge-top i:nth-child(1), .edge-top i:nth-child(2) { display: none; }
+.edge-top i:nth-child(3) { -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); -webkit-mask: linear-gradient(#000 55%, transparent); mask: linear-gradient(#000 55%, transparent); background: linear-gradient(var(--scroll-edge), var(--scroll-edge) 45%, transparent); }
+
+/* Labels stay on one line. Rows of buttons wrap as whole buttons instead. */
+.btn, .chip, .bar-button, .text-button, .segmented button, .tab-label, .nav-item, .round-button, .accessory-title, .metric-label {
+  white-space: nowrap;
+}
+.btn { max-width: 100%; overflow: hidden; text-overflow: ellipsis; padding-inline: 18px; }
+.btn.small { padding-inline: 14px; }
+.btn-row { flex-wrap: wrap; }
+.btn-row > * { flex: 1 1 auto; min-width: max-content; }
+.segmented button { padding-inline: 6px; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.suggest .chip { white-space: normal; }
+
+/* Narrow phones (iPhone SE / mini): keep everything inside the screen. */
+.grid-cards { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .grid-cards { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.card { min-width: 0; }
+.hero-main .btn { min-width: 0; }
+@media (max-width: 374px) {
+  .hero { gap: 12px; }
+  .hero .ring { width: 104px; height: 104px; }
+  .ring-center .pct { font-size: 1.3rem; }
+  .metric.xl { font-size: 2.5rem; }
+  .tab { font-size: 0.5625rem; }
+  .fab { width: 58px; height: 58px; }
+}

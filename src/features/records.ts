@@ -26,8 +26,10 @@ export function renderRecords(ctx: Ctx) {
     })
     .sort((a, b) => (b.date + (b.startAt ?? b.createdAt)).localeCompare(a.date + (a.startAt ?? a.createdAt)));
 
+  // Render a page at a time: hundreds of rows at once are heavy on phones.
+  const shown = list.slice(0, shownCount);
   const groups = new Map<string, typeof list>();
-  for (const r of list) {
+  for (const r of shown) {
     if (!groups.has(r.date)) groups.set(r.date, []);
     groups.get(r.date)!.push(r);
   }
@@ -61,13 +63,22 @@ export function renderRecords(ctx: Ctx) {
           ([date, recs]) => html`<h2 class="list-header"><span>${fmtDate(date, { relative: true })}</span><strong class="num">${fmtDuration(recs.reduce((s, r) => s + r.durationSec, 0))}</strong></h2>
             <div class="list">${recs.map((r) => recordRow(ds, r))}</div>`,
         )}
+    ${list.length > shown.length ? html`<div style="display:grid;place-items:center;margin-top:16px"><button type="button" class="btn small" data-action="records-more">さらに表示（残り${list.length - shown.length}件）</button></div>` : ""}
   `;
   const trailing = html`<button type="button" class="bar-button icon-only glass glass-interactive" data-action="new-record" aria-label="記録を追加">${raw(icon("plus"))}</button>`;
   return { body, trailing };
 }
 
+const PAGE = 60;
+let shownCount = PAGE;
+
 registerActions({
+  "records-more": (ctx) => {
+    shownCount += PAGE;
+    ctx.rerender();
+  },
   "records-search": (ctx, el) => {
+    shownCount = PAGE;
     const input = el as HTMLInputElement;
     const pos = input.selectionStart ?? input.value.length;
     ctx.ui.records.q = input.value;
@@ -78,10 +89,12 @@ registerActions({
   },
   "records-subject": (ctx, el) => {
     ctx.ui.records.subject = el.dataset.value!;
+    shownCount = PAGE;
     ctx.rerender();
   },
   "records-range": (ctx, el) => {
     ctx.ui.records.range = el.dataset.value as Ctx["ui"]["records"]["range"];
+    shownCount = PAGE;
     ctx.rerender();
   },
 });

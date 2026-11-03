@@ -19,6 +19,7 @@ import { newId } from "./ids";
 import { emptyDataset, normalizeDataset, type Issue } from "./validate";
 import { deviceTimezone, nowISO, secondsBetween, today, toLocalDate } from "./time";
 import { compareFingerprints, fingerprint } from "./integrity";
+import { mergeDatasets } from "./merge";
 
 export type Listener = (ds: StudyDataset) => void;
 
@@ -51,7 +52,26 @@ export class StudyStore {
       this.data = dataset;
       this.issues = issues;
     }
+    this.storage.watch?.(() => void this.pullRemote());
     this.emit();
+  }
+
+  /** Another device saved: merge its data in (nothing is dropped) and show it. */
+  private async pullRemote() {
+    await this.saving;
+    let raw: unknown;
+    try {
+      raw = await this.storage.load();
+    } catch {
+      return;
+    }
+    if (raw === null) return;
+    const remote = normalizeDataset(raw).dataset;
+    const { dataset } = mergeDatasets(remote, this.data);
+    const localHadMore = compareFingerprints(fingerprint(remote), fingerprint(dataset)).equal === false;
+    this.data = dataset;
+    this.emit();
+    if (localHadMore && !this.readOnly) this.saving = this.saving.then(() => this.persist()).catch((e: Error) => this.reportSaveError(e));
   }
 
   subscribe(fn: Listener): () => void {
@@ -73,7 +93,17 @@ export class StudyStore {
     }
     this.data.meta.updatedAt = nowISO();
     this.data.meta.timezone = deviceTimezone();
-    await this.storage.save(this.data);
+    const result = await this.storage.save(this.data);
+    // The adapter found newer data from another device and saved the merge of both.
+    if (result && "merged" in result) {
+      this.data = normalizeDataset(result.merged).dataset;
+      this.emit();
+    }
+  }
+
+  private reportSaveError(e: Error) {
+    this.saveError = e;
+    for (const fn of this.errorListeners) fn(e);
   }
 
   /**
@@ -90,10 +120,7 @@ export class StudyStore {
       .then(() => {
         this.saveError = null;
       })
-      .catch((e: Error) => {
-        this.saveError = e;
-        for (const fn of this.errorListeners) fn(e);
-      });
+      .catch((e: Error) => this.reportSaveError(e));
     return this.saving;
   }
 
@@ -275,28 +302,13 @@ export class StudyStore {
   async importDataset(raw: unknown): Promise<{ added: number; updated: number; skipped: number; issues: Issue[] }> {
     const { dataset: inc, issues } = normalizeDataset(raw);
     await this.storage.backup("インポート前のバックアップ", this.data);
-    let added = 0, updated = 0, skipped = 0;
-    const mergeList = <T extends { id: string; updatedAt: string }>(cur: T[], incoming: T[], count: boolean) => {
-      const byId = new Map(cur.map((x, i) => [x.id, i]));
-      for (const x of incoming) {
-        const i = byId.get(x.id);
-        if (i === undefined) {
-          cur.push(x);
-          if (count) added++;
-        } else if (Date.parse(x.updatedAt) > Date.parse(cur[i].updatedAt)) {
-          cur[i] = x;
-          if (count) updated++;
-        } else if (count) skipped++;
-      }
-    };
+    let counts = { added: 0, updated: 0, skipped: 0 };
     await this.commit((ds) => {
-      mergeList(ds.subjects, inc.subjects, false);
-      mergeList(ds.tasks, inc.tasks, false);
-      mergeList(ds.plans, inc.plans, false);
-      mergeList(ds.records, inc.records, true);
-      if (inc.extensions) ds.extensions = { ...inc.extensions, ...ds.extensions };
+      const merged = mergeDatasets(ds, { ...inc, meta: { ...inc.meta, updatedAt: "0000-01-01T00:00:00Z" } });
+      counts = merged.counts;
+      Object.assign(ds, merged.dataset);
     });
-    return { added, updated, skipped, issues };
+    return { ...counts, issues };
   }
 
   /** Replace the dataset with a canonical one after backing up; verifies the result. */

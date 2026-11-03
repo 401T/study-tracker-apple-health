@@ -229,6 +229,7 @@ export function normalizeSettings(raw: unknown, issues: Issue[]): Settings {
   const s: Settings = {
     theme: r.oneOf("theme", ["system", "light", "dark"] as const, DEFAULT_SETTINGS.theme),
     glass: r.oneOf("glass", ["standard", "reduced"] as const, DEFAULT_SETTINGS.glass),
+    refraction: r.bool("refraction", DEFAULT_SETTINGS.refraction),
     dailyGoalSec: r.sec("dailyGoalSec", DEFAULT_SETTINGS.dailyGoalSec),
     weekStartsOn: r.oneOf("weekStartsOn", [0, 1] as const, DEFAULT_SETTINGS.weekStartsOn),
   };

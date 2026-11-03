@@ -35,7 +35,7 @@ export function delta(c: Comparison, noun = "前期間"): Safe {
 }
 
 export function segmented(name: string, options: { value: string; label: string }[], value: string, action: string): Safe {
-  return html`<div class="segmented" role="radiogroup" aria-label="${name}">${options.map(
+  return html`<div class="segmented" role="radiogroup" aria-label="${name}" data-lens="${action}">${options.map(
     (o) => html`<button type="button" role="radio" aria-checked="${o.value === value}" data-action="${action}" data-value="${o.value}">${o.label}</button>`,
   )}</div>`;
 }

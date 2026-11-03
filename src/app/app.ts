@@ -1,5 +1,6 @@
 /**
- * App shell: navigation, rendering loop, sheets, toasts, theme, timer tick.
+ * App shell: navigation (glass tab bar on phones, glass sidebar on wide screens),
+ * rendering loop, sheets, dialogs, toasts, theme, timer tick, storage selection.
  * Screens and sheets live in src/features and only produce HTML + actions.
  */
 
@@ -10,12 +11,15 @@ import "../design-system/components.css";
 
 import { StudyStore, sessionTimes } from "../data/store";
 import { localStorageAdapter, memoryAdapter, type StorageAdapter } from "../adapters/storage";
-import { applyProposal, createAgentApi, mountSnapshot } from "../adapters/agent-api";
+import { createAgentApi, mountSnapshot } from "../adapters/agent-api";
+import { capability, inClaudeArtifact, type Db, type UserCap } from "../adapters/claude-runtime";
+import { ClaudeDbStorage } from "../adapters/claude-db-storage";
 import { html, raw, type Safe } from "../components/html";
-import { hydrateCharts, observeChartResizes } from "../components/chart";
+import { hydrateCharts, observeChartResizes, ring } from "../components/chart";
 import { icon } from "../design-system/icons";
-import { fmtClock } from "../analytics/format";
-import { subjectName } from "../analytics";
+import { LiquidGlass } from "../design-system/liquid-glass";
+import { fmtClock, fmtDuration, fmtPercent } from "../analytics/format";
+import { subjectName, summarizeDay } from "../analytics";
 import { today } from "../data/time";
 import { actions, sheets, submits, type Ctx, type Tab, type UIState } from "./context";
 
@@ -24,6 +28,7 @@ import { renderRecords } from "../features/records";
 import { renderAnalytics } from "../features/analytics";
 import { renderSubjects } from "../features/subjects";
 import { renderSettings } from "../features/settings";
+import { initCoach } from "../features/coach";
 import "../features/record-sheets";
 import "../features/timer";
 import "../features/subject-sheets";
@@ -45,7 +50,7 @@ const SCREENS: Record<Tab, (ctx: Ctx) => { body: Safe; trailing?: Safe; subtitle
   settings: renderSettings,
 };
 
-function pickStorage(): StorageAdapter {
+function localStorageOrMemory(): StorageAdapter {
   try {
     const k = "sah:v1:probe";
     window.localStorage.setItem(k, "1");
@@ -56,8 +61,22 @@ function pickStorage(): StorageAdapter {
   }
 }
 
+/** claude.ai artifact → private cloud store (syncs devices, Claude can read it); elsewhere → this browser. */
+async function pickStorage(): Promise<StorageAdapter> {
+  if (!inClaudeArtifact()) return localStorageOrMemory();
+  const [db, user] = await Promise.all([capability<Db>("db"), capability<UserCap>("user")]);
+  const uid = user ? await user.id().catch(() => null) : null;
+  if (db && uid) return new ClaudeDbStorage(db, uid);
+  return localStorageOrMemory();
+}
+
 export async function boot(root: HTMLElement) {
-  const storage = pickStorage();
+  root.innerHTML = `<div class="wallpaper" aria-hidden="true"><i class="b1"></i><i class="b2"></i><i class="b3"></i><i class="b4"></i></div>
+    <div class="boot" role="status"><div class="boot-card glass" data-glass>${icon("timer")}<span>記録を読み込んでいます…</span></div></div>`;
+  LiquidGlass.init();
+  LiquidGlass.scan(root);
+
+  const storage = await pickStorage();
   const store = new StudyStore(storage);
   await store.init();
 
@@ -71,7 +90,14 @@ export async function boot(root: HTMLElement) {
   if (!TABS.some((t) => t.id === ui.tab)) ui.tab = "summary";
 
   root.innerHTML = `
+    <div class="wallpaper" aria-hidden="true"><i class="b1"></i><i class="b2"></i><i class="b3"></i><i class="b4"></i></div>
     <div class="app">
+      <div class="edge-top" id="edge-top" aria-hidden="true"><i></i><i></i><i></i></div>
+      <aside class="sidebar glass" data-glass aria-label="ナビゲーション">
+        <div class="brand"><span class="brand-mark">${icon("timer")}</span><span>学習記録</span></div>
+        <nav class="nav" id="side-nav" data-lens="side" aria-label="メイン"></nav>
+        <div class="side-today" id="side-today"></div>
+      </aside>
       <header class="topbar" id="topbar"><div class="topbar-inner">
         <div class="topbar-leading" id="topbar-leading"></div>
         <div class="topbar-title" id="topbar-title" aria-hidden="true"></div>
@@ -81,11 +107,12 @@ export async function boot(root: HTMLElement) {
       <div class="bottom-dock" id="dock">
         <div id="accessory-slot" class="dock-row"></div>
         <div class="dock-row">
-          <nav class="tabbar glass" aria-label="メイン"><div style="display:contents" id="tabs"></div></nav>
-          <button type="button" class="fab glass glass-interactive" id="fab" data-action="open-timer"></button>
+          <nav class="tabbar glass" data-refract aria-label="メイン"><div class="tabs" id="tabs" data-lens="tabs"></div></nav>
+          <button type="button" class="fab glass glass-interactive" data-refract id="fab" data-action="open-timer"></button>
         </div>
       </div>
       <div class="sheet-layer" id="sheet-layer" hidden></div>
+      <div class="dialog-layer" id="dialog-layer" hidden></div>
       <div class="toast-layer" id="toast-layer" aria-live="polite"></div>
     </div>`;
 
@@ -113,7 +140,8 @@ export async function boot(root: HTMLElement) {
       renderSheet(true);
     },
     closeSheet() {
-      sheetStack.pop();
+      const closed = sheetStack.pop();
+      if (closed?.name === "coach") ui.coachSheetOpen = false;
       if (sheetStack.length) renderSheet(true);
       else hideSheet();
     },
@@ -128,6 +156,7 @@ export async function boot(root: HTMLElement) {
         return false;
       }
     },
+    confirm: showDialog,
   };
 
   // ---------- Theme ----------
@@ -136,16 +165,21 @@ export async function boot(root: HTMLElement) {
     const el = document.documentElement;
     if (s.theme === "system") el.removeAttribute("data-theme");
     else el.setAttribute("data-theme", s.theme);
-    el.setAttribute("data-glass", s.glass);
+    if (el.dataset.glass !== s.glass) {
+      el.setAttribute("data-glass", s.glass);
+      LiquidGlass.refresh();
+    }
+    LiquidGlass.setEnabled(s.refraction !== false);
     const dark = s.theme === "dark" || (s.theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
-    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#000000" : "#f2f2f7");
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#05060a" : "#eef1f8");
   }
 
-  // ---------- Tabs ----------
-  function renderTabs() {
-    $("tabs").innerHTML = TABS.map(
-      (t) => `<button type="button" class="tab" data-action="tab" data-tab="${t.id}"${t.id === ui.tab ? ' aria-current="page"' : ""}>${icon(t.icon)}<span class="tab-label">${t.label}</span></button>`,
-    ).join("");
+  // ---------- Navigation ----------
+  function renderNav() {
+    const btn = (t: (typeof TABS)[number], cls: string) =>
+      `<button type="button" class="${cls}" data-action="tab" data-tab="${t.id}"${t.id === ui.tab ? ' aria-current="page"' : ""}>${icon(t.icon)}<span class="tab-label">${t.label}</span></button>`;
+    $("tabs").innerHTML = TABS.map((t) => btn(t, "tab")).join("");
+    $("side-nav").innerHTML = TABS.map((t) => btn(t, "nav-item")).join("");
   }
 
   function renderDock() {
@@ -154,22 +188,30 @@ export async function boot(root: HTMLElement) {
     fab.classList.toggle("is-running", !!s);
     fab.innerHTML = icon(s ? "timer" : "plus");
     fab.setAttribute("aria-label", s ? "タイマーを開く（計測中）" : "記録を追加またはタイマーを開始");
-    const slot = $("accessory-slot");
-    if (!s) {
-      slot.innerHTML = "";
-      return;
-    }
-    const color = store.data.subjects.find((x) => x.id === s.subjectId)?.color ?? "gray";
-    const t = sessionTimes(s);
-    slot.innerHTML = html`<div class="accessory glass">
-        <button type="button" class="accessory-open" data-action="open-timer" aria-label="タイマーを開く: ${subjectName(store.data, s.subjectId)}、${t.paused ? "一時停止中" : "計測中"}">
-          <span class="accessory-dot" style="background: var(--subject-${color})"></span>
-          <span class="accessory-text"><span class="accessory-title">${subjectName(store.data, s.subjectId)}</span>
-          <span class="accessory-sub">${t.paused ? "一時停止中" : "計測中"}</span></span>
-          <span class="accessory-time" data-live="timer-clock" aria-hidden="true">${fmtClock(t.studySec)}</span>
-        </button>
-        <button type="button" class="round-button primary" data-action="${t.paused ? "timer-resume" : "timer-pause"}" aria-label="${t.paused ? "再開" : "一時停止"}">${raw(icon(t.paused ? "play" : "pause"))}</button>
-      </div>`.value;
+    const day = summarizeDay(store.data);
+    const accessory = s
+      ? (() => {
+          const color = store.data.subjects.find((x) => x.id === s.subjectId)?.color ?? "gray";
+          const t = sessionTimes(s);
+          return html`<div class="accessory glass" data-refract>
+            <button type="button" class="accessory-open" data-action="open-timer" aria-label="タイマーを開く: ${subjectName(store.data, s.subjectId)}、${t.paused ? "一時停止中" : "計測中"}">
+              <span class="accessory-dot" style="background: var(--subject-${color})"></span>
+              <span class="accessory-text"><span class="accessory-title">${subjectName(store.data, s.subjectId)}</span>
+              <span class="accessory-sub">${t.paused ? "一時停止中" : "計測中"}</span></span>
+              <span class="accessory-time" data-live="timer-clock" aria-hidden="true">${fmtClock(t.studySec)}</span>
+            </button>
+            <button type="button" class="round-button primary" data-action="${t.paused ? "timer-resume" : "timer-pause"}" aria-label="${t.paused ? "再開" : "一時停止"}">${raw(icon(t.paused ? "play" : "pause"))}</button>
+          </div>`.value;
+        })()
+      : "";
+    $("accessory-slot").innerHTML = accessory;
+    const pct = day.goalRatio === null ? "—" : fmtPercent(day.goalRatio);
+    $("side-today").innerHTML = html`
+      <div class="side-ring">${ring(day.goalRatio, html`<span class="pct num">${pct}</span>`, `今日の目標達成率 ${pct}`)}
+        <div><span class="metric-label">今日</span><div class="side-total num">${fmtDuration(day.totalSec)}</div><span class="card-text" style="font:var(--type-footnote)">目標 ${fmtDuration(day.goalSec)}</span></div></div>
+      ${raw(accessory)}
+      <button type="button" class="btn block primary glass-interactive" data-action="open-timer">${raw(icon(s ? "timer" : "play"))}${s ? "計測中のタイマー" : "タイマーを開始"}</button>
+      <button type="button" class="btn block" data-action="new-record">${raw(icon("edit"))}手入力で記録</button>`.value;
   }
 
   // ---------- Screen ----------
@@ -180,7 +222,7 @@ export async function boot(root: HTMLElement) {
     const banners: Safe[] = [];
     if (store.loadError) banners.push(html`<div class="banner warning" role="alert">${raw(icon("warning"))}<div>${store.loadError}</div></div>`);
     if (storage.name === "memory")
-      banners.push(html`<div class="banner warning" role="status">${raw(icon("warning"))}<div>この環境ではブラウザ保存が使えないため、記録は再読み込みで消えます。設定 → データ からJSONを書き出してください。</div></div>`);
+      banners.push(html`<div class="banner warning" role="status">${raw(icon("warning"))}<div>この環境ではデータを保存できないため、記録は再読み込みで消えます。設定 → データ からJSONを書き出してください。</div></div>`);
     if (store.saveError) banners.push(html`<div class="banner warning" role="alert">${raw(icon("warning"))}<div>保存に失敗しました: ${store.saveError.message}</div></div>`);
     if (ui.proposals.length)
       banners.push(html`<button type="button" class="banner" data-action="open-proposals" style="width:100%;border:0;text-align:left">${raw(icon("sparkles"))}<div><strong>AIエージェントの提案 ${ui.proposals.length}件</strong><br>承認するまでデータは変更されません。タップして確認</div></button>`);
@@ -189,9 +231,10 @@ export async function boot(root: HTMLElement) {
     screen.innerHTML = html`${banners}<h1 class="large-title">${meta.title}</h1>${view.subtitle ? html`<p class="large-subtitle">${view.subtitle}</p>` : ""}${view.body}`.value;
     $("topbar-title").textContent = meta.title;
     $("topbar-trailing").innerHTML = view.trailing?.value ?? "";
-    renderTabs();
+    renderNav();
     renderDock();
     hydrateCharts(screen);
+    LiquidGlass.scan(document);
     window.scrollTo(0, scroll);
     document.title = `${meta.title} — 学習記録`;
   }
@@ -208,21 +251,22 @@ export async function boot(root: HTMLElement) {
     layer.hidden = false;
     layer.classList.remove("is-closing");
     layer.innerHTML = html`<div class="sheet-scrim" data-action="sheet-close"></div>
-      <div class="sheet glass glass-thick" role="dialog" aria-modal="true" aria-labelledby="sheet-title" data-sheet="${top.name}">
+      <div class="sheet glass glass-thick" data-glass role="dialog" aria-modal="true" aria-labelledby="sheet-title" data-sheet="${top.name}">
         <div class="sheet-grabber" aria-hidden="true"></div>
         <div class="sheet-header">
-          <div class="leading">${v.leading ?? html`<button type="button" class="bar-button icon-only glass glass-interactive" data-action="sheet-close" aria-label="閉じる">${raw(icon("close"))}</button>`}</div>
+          <div class="leading">${v.leading ?? html`<button type="button" class="bar-button icon-only glass glass-interactive" data-refract data-action="sheet-close" aria-label="閉じる">${raw(icon("close"))}</button>`}</div>
           <h2 id="sheet-title">${v.title}</h2>
           <div class="trailing">${v.trailing ?? ""}</div>
         </div>
         <div class="sheet-body">${v.body}</div>
       </div>`.value;
     hydrateCharts(layer);
+    LiquidGlass.scan(layer);
     document.body.style.overflow = "hidden";
-    screen.setAttribute("aria-hidden", "true");
-    $("dock").setAttribute("aria-hidden", "true");
-    $("dock").setAttribute("inert", "");
-    screen.setAttribute("inert", "");
+    for (const el of [screen, $("dock"), document.querySelector<HTMLElement>(".sidebar")!]) {
+      el.setAttribute("aria-hidden", "true");
+      el.setAttribute("inert", "");
+    }
     const body = layer.querySelector(".sheet-body")!;
     if (fresh) {
       const first = layer.querySelector<HTMLElement>("[autofocus]") ?? layer.querySelector<HTMLElement>(".sheet-header h2");
@@ -240,10 +284,10 @@ export async function boot(root: HTMLElement) {
       layer.innerHTML = "";
       layer.classList.remove("is-closing");
       document.body.style.overflow = "";
-      screen.removeAttribute("aria-hidden");
-      screen.removeAttribute("inert");
-      $("dock").removeAttribute("aria-hidden");
-      $("dock").removeAttribute("inert");
+      for (const el of [screen, $("dock"), document.querySelector<HTMLElement>(".sidebar")!]) {
+        el.removeAttribute("aria-hidden");
+        el.removeAttribute("inert");
+      }
       lastFocus?.focus?.({ preventScroll: true });
     };
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return finish();
@@ -252,11 +296,48 @@ export async function boot(root: HTMLElement) {
     setTimeout(finish, 200);
   }
 
+  // ---------- Confirmation dialog (alert style) ----------
+  function showDialog(opts: { title: string; message?: string; ok: string; destructive?: boolean }): Promise<boolean> {
+    const layer = $("dialog-layer");
+    const prev = document.activeElement as HTMLElement | null;
+    return new Promise((resolve) => {
+      layer.hidden = false;
+      layer.innerHTML = html`<div class="dialog-scrim"></div>
+        <div class="dialog glass glass-thick" data-glass role="alertdialog" aria-modal="true" aria-labelledby="dlg-t" aria-describedby="dlg-m">
+          <h2 id="dlg-t">${opts.title}</h2>${opts.message ? html`<p id="dlg-m">${opts.message}</p>` : ""}
+          <div class="btn-row"><button type="button" class="btn" data-dlg="0">キャンセル</button>
+          <button type="button" class="btn ${opts.destructive ? "destructive-fill" : "primary"}" data-dlg="1">${opts.ok}</button></div>
+        </div>`.value;
+      LiquidGlass.scan(layer);
+      const done = (v: boolean) => {
+        layer.hidden = true;
+        layer.innerHTML = "";
+        document.removeEventListener("keydown", onKey, true);
+        prev?.focus?.({ preventScroll: true });
+        resolve(v);
+      };
+      const onKey = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          e.stopPropagation();
+          e.preventDefault();
+          done(false);
+        }
+      };
+      document.addEventListener("keydown", onKey, true);
+      layer.querySelectorAll<HTMLButtonElement>("[data-dlg]").forEach((b) => b.addEventListener("click", (e) => {
+        e.stopPropagation();
+        done(b.dataset.dlg === "1");
+      }));
+      layer.querySelector<HTMLButtonElement>('[data-dlg="0"]')!.focus();
+    });
+  }
+
   // ---------- Toast ----------
   let toastTimer: number | undefined;
   function toast(message: string, action?: { label: string; run: () => void }) {
     const layer = $("toast-layer");
-    layer.innerHTML = html`<div class="toast glass" role="status"><span>${message}</span>${action ? html`<button type="button" class="text-button" id="toast-action">${action.label}</button>` : ""}</div>`.value;
+    layer.innerHTML = html`<div class="toast glass" data-refract role="status"><span>${message}</span>${action ? html`<button type="button" class="text-button" id="toast-action">${action.label}</button>` : ""}</div>`.value;
+    LiquidGlass.scan(layer);
     if (action) $("toast-action").addEventListener("click", () => {
       layer.innerHTML = "";
       action.run();
@@ -268,7 +349,7 @@ export async function boot(root: HTMLElement) {
   // ---------- Events ----------
   document.addEventListener("click", async (ev) => {
     const el = (ev.target as HTMLElement).closest<HTMLElement>("[data-action]");
-    if (!el) return;
+    if (!el || (el as HTMLButtonElement).disabled) return;
     const name = el.dataset.action!;
     const h = actions[name] ?? builtins[name];
     if (!h) return;
@@ -281,19 +362,13 @@ export async function boot(root: HTMLElement) {
     }
   });
   document.addEventListener("keydown", (ev) => {
+    if (!$("dialog-layer").hidden) return;
     if (ev.key === "Escape" && sheetStack.length) {
       ev.preventDefault();
       ctx.closeSheet();
     }
-    // role=button spans inside other buttons (accessory pause) need keyboard activation
-    const t = ev.target as HTMLElement;
-    if ((ev.key === "Enter" || ev.key === " ") && t.getAttribute("role") === "button" && t.dataset.action && t.tagName !== "BUTTON" && !(t instanceof SVGElement)) {
-      ev.preventDefault();
-      t.click();
-    }
-    // Focus trap inside the sheet
     if (ev.key === "Tab" && sheetStack.length) {
-      const f = [...$("sheet-layer").querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter((x) => !x.hasAttribute("disabled"));
+      const f = [...$("sheet-layer").querySelectorAll<HTMLElement>('button, [href], input, select, textarea, summary, [tabindex]:not([tabindex="-1"])')].filter((x) => !x.hasAttribute("disabled"));
       if (!f.length) return;
       const first = f[0], last = f[f.length - 1];
       if (ev.shiftKey && document.activeElement === first) { ev.preventDefault(); last.focus(); }
@@ -322,28 +397,13 @@ export async function boot(root: HTMLElement) {
     if (name && actions[name]) void actions[name](ctx, el, ev);
   });
 
-  // Glass press glow follows the pointer.
-  document.addEventListener("pointerdown", (ev) => {
-    const g = (ev.target as HTMLElement).closest<HTMLElement>(".glass-interactive");
-    if (!g) return;
-    const r = g.getBoundingClientRect();
-    g.style.setProperty("--mx", `${ev.clientX - r.left}px`);
-    g.style.setProperty("--my", `${ev.clientY - r.top}px`);
-    g.classList.add("is-pressed");
-    const up = () => {
-      g.classList.remove("is-pressed");
-      window.removeEventListener("pointerup", up);
-      window.removeEventListener("pointercancel", up);
-    };
-    window.addEventListener("pointerup", up);
-    window.addEventListener("pointercancel", up);
-  });
-
-  // Scroll: edge effect on the top bar; tab bar minimizes on scroll down.
+  // Scroll: graded edge blur; tab bar minimizes on scroll down.
   let lastY = window.scrollY;
   window.addEventListener("scroll", () => {
     const y = window.scrollY;
-    $("topbar").classList.toggle("is-scrolled", y > 28);
+    const scrolled = y > 28;
+    $("topbar").classList.toggle("is-scrolled", scrolled);
+    $("edge-top").classList.toggle("is-on", y > 4);
     const dock = $("dock");
     if (y > lastY + 6 && y > 120) dock.classList.add("is-minimized");
     else if (y < lastY - 6 || y < 60) dock.classList.remove("is-minimized");
@@ -366,7 +426,6 @@ export async function boot(root: HTMLElement) {
     "sheet-close": (c) => c.closeSheet(),
     "open-proposals": (c) => c.openSheet("proposals"),
   };
-  void applyProposal; // used by agent-sheets
 
   // ---------- Live updates ----------
   store.subscribe(() => {
@@ -390,6 +449,7 @@ export async function boot(root: HTMLElement) {
   mountSnapshot(store);
   (window as unknown as { studyTracker: unknown }).studyTracker = ctx.agent;
   renderScreen();
+  void initCoach(ctx);
   return ctx;
 }
 

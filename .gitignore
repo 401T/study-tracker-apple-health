@@ -13,3 +13,4 @@ study-tracker-export-*.json
 study-tracker-export-*.csv
 study-tracker-export-*.md
 screenshots/raw/
+.claude/

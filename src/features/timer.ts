@@ -99,11 +99,11 @@ registerActions({
     ctx.safely(() => ctx.store.resumeSession());
     ctx.rerenderSheet();
   },
-  "timer-finish": (ctx) => {
+  "timer-finish": async (ctx) => {
     const s = ctx.store.data.activeSession;
     if (!s) return;
     const { studySec } = sessionTimes(s);
-    if (studySec < 60 && !confirm("勉強時間が1分未満です。記録しますか？")) return;
+    if (studySec < 60 && !(await ctx.confirm({ title: "1分未満の記録です", message: "このまま記録しますか？", ok: "記録する" }))) return;
     let rec: ReturnType<typeof ctx.store.finishSession> = null;
     if (!ctx.safely(() => (rec = ctx.store.finishSession()))) return;
     ctx.closeSheet();
@@ -112,8 +112,8 @@ registerActions({
       ctx.toast(`${studySec < 60 ? "1分未満" : fmtDuration(studySec)}を記録しました`, { label: "詳細", run: () => ctx.openSheet("record", { id }) });
     }
   },
-  "timer-discard": (ctx) => {
-    if (!confirm("計測中の時間を記録せずに破棄しますか？")) return;
+  "timer-discard": async (ctx) => {
+    if (!(await ctx.confirm({ title: "計測を破棄しますか？", message: "計測中の時間は記録されません。", ok: "破棄", destructive: true }))) return;
     ctx.safely(() => ctx.store.discardSession());
     ctx.closeSheet();
   },

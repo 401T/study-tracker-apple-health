@@ -8,10 +8,17 @@
   color-scheme: light;
 
   /* ---- Color: backgrounds (grouped style, like Health) ---- */
-  --color-bg: #f2f2f7;                 /* systemGroupedBackground */
+  --color-bg: #eef1f8;                 /* wallpaper base under the color blobs */
   --color-bg-elevated: #ffffff;        /* sheets */
-  --color-card: #ffffff;               /* secondarySystemGroupedBackground */
-  --color-card-inset: #f2f2f7;         /* fills inside cards */
+  --color-card: rgba(255, 255, 255, 0.62);   /* frosted glass cell (content layer) */
+  --color-card-solid: #ffffff;         /* opaque fallback + chart label halos */
+  --color-card-inset: rgba(118, 118, 128, 0.08);
+  --cell-blur: 24px;
+  --cell-edge: rgba(255, 255, 255, 0.85);
+  --cell-shadow: 0 10px 30px rgba(30, 40, 80, 0.07), 0 1px 2px rgba(30, 40, 80, 0.05);
+  --blob1: #8db4ff;  --blob2: #ffb0cd;  --blob3: #a2ebc6;  --blob4: #ffd590;  /* wallpaper */
+  --lens: rgba(255, 255, 255, 0.82);
+  --lens-shadow: 0 4px 14px rgba(20, 30, 60, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.95);
   --color-fill: rgba(120, 120, 128, 0.16);
   --color-fill-secondary: rgba(120, 120, 128, 0.12);
   --color-fill-tertiary: rgba(118, 118, 128, 0.08);
@@ -55,7 +62,7 @@
   --chart-goal: #c93400;               /* goal rule: 5.3:1 on card */
   --chart-average: var(--color-label-secondary);
   --chart-selection: rgba(88, 86, 214, 0.10);
-  --chart-separator: var(--color-card); /* gap between stacked segments */
+  --chart-separator: var(--color-card-solid); /* gap between stacked segments */
 
   /* ---- Typography (iOS Dynamic Type "Large" defaults, in rem @16px root
      so browser text-size preferences scale everything) ---- */
@@ -101,7 +108,8 @@
   --radius-xs: 6px;
   --radius-s: 10px;
   --radius-m: 14px;
-  --radius-card: 22px;
+  --radius-card: 26px;
+  --radius-panel: 34px;
   --radius-sheet: 34px;
   --radius-capsule: 999px;
 
@@ -111,9 +119,9 @@
   --shadow-sheet: 0 -6px 40px rgba(0, 0, 0, 0.18);
 
   /* ---- Material: Liquid Glass (web approximation, see glass.css) ---- */
-  --glass-tint: rgba(255, 255, 255, 0.62);
-  --glass-tint-strong: rgba(255, 255, 255, 0.82);
-  --glass-blur: 22px;
+  --glass-tint: rgba(255, 255, 255, 0.28);          /* small floating controls: mostly clear */
+  --glass-tint-strong: rgba(255, 255, 255, 0.6);    /* large panels/sheets: readable */
+  --glass-blur: 16px;
   --glass-saturate: 1.8;
   --glass-border: rgba(255, 255, 255, 0.75);
   --glass-edge: rgba(0, 0, 0, 0.08);
@@ -123,7 +131,7 @@
   --glass-press-glow: rgba(255, 255, 255, 0.55);
   --glass-opaque: #f9f9fb;          /* Reduce Transparency fallback */
   --scrim: rgba(0, 0, 0, 0.32);
-  --scroll-edge: rgba(242, 242, 247, 0.85);
+  --scroll-edge: rgba(238, 241, 248, 0.55);
 
   /* ---- Motion ---- */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
@@ -143,10 +151,16 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --color-bg: #000000;
+    --color-bg: #05060a;
     --color-bg-elevated: #1c1c1e;
-    --color-card: #1c1c1e;
-    --color-card-inset: #2c2c2e;
+    --color-card: rgba(255, 255, 255, 0.075);
+    --color-card-solid: #16171c;
+    --color-card-inset: rgba(118, 118, 128, 0.2);
+    --cell-edge: rgba(255, 255, 255, 0.1);
+    --cell-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    --blob1: #17408a;  --blob2: #561c4a;  --blob3: #0f4d3a;  --blob4: #573c12;
+    --lens: rgba(255, 255, 255, 0.2);
+    --lens-shadow: 0 4px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
     --color-fill: rgba(120, 120, 128, 0.36);
     --color-fill-secondary: rgba(120, 120, 128, 0.32);
     --color-fill-tertiary: rgba(118, 118, 128, 0.24);
@@ -180,8 +194,8 @@
     --shadow-card: none;
     --shadow-float: 0 8px 28px rgba(0, 0, 0, 0.5);
     --shadow-sheet: 0 -6px 40px rgba(0, 0, 0, 0.6);
-    --glass-tint: rgba(40, 40, 44, 0.55);
-    --glass-tint-strong: rgba(44, 44, 48, 0.8);
+    --glass-tint: rgba(40, 40, 46, 0.3);
+    --glass-tint-strong: rgba(28, 28, 32, 0.62);
     --glass-border: rgba(255, 255, 255, 0.16);
     --glass-edge: rgba(0, 0, 0, 0.5);
     --glass-highlight: rgba(255, 255, 255, 0.28);
@@ -190,17 +204,23 @@
     --glass-press-glow: rgba(255, 255, 255, 0.18);
     --glass-opaque: #242426;
     --scrim: rgba(0, 0, 0, 0.55);
-    --scroll-edge: rgba(0, 0, 0, 0.82);
+    --scroll-edge: rgba(5, 6, 10, 0.5);
   }
 }
 
 /* Forced dark (Settings → テーマ → ダーク). Same values as above. */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --color-bg: #000000;
+  --color-bg: #05060a;
   --color-bg-elevated: #1c1c1e;
-  --color-card: #1c1c1e;
-  --color-card-inset: #2c2c2e;
+  --color-card: rgba(255, 255, 255, 0.075);
+  --color-card-solid: #16171c;
+  --color-card-inset: rgba(118, 118, 128, 0.2);
+  --cell-edge: rgba(255, 255, 255, 0.1);
+  --cell-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --blob1: #17408a;  --blob2: #561c4a;  --blob3: #0f4d3a;  --blob4: #573c12;
+  --lens: rgba(255, 255, 255, 0.2);
+  --lens-shadow: 0 4px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
   --color-fill: rgba(120, 120, 128, 0.36);
   --color-fill-secondary: rgba(120, 120, 128, 0.32);
   --color-fill-tertiary: rgba(118, 118, 128, 0.24);
@@ -234,8 +254,8 @@
   --shadow-card: none;
   --shadow-float: 0 8px 28px rgba(0, 0, 0, 0.5);
   --shadow-sheet: 0 -6px 40px rgba(0, 0, 0, 0.6);
-  --glass-tint: rgba(40, 40, 44, 0.55);
-  --glass-tint-strong: rgba(44, 44, 48, 0.8);
+  --glass-tint: rgba(40, 40, 46, 0.3);
+  --glass-tint-strong: rgba(28, 28, 32, 0.62);
   --glass-border: rgba(255, 255, 255, 0.16);
   --glass-edge: rgba(0, 0, 0, 0.5);
   --glass-highlight: rgba(255, 255, 255, 0.28);
@@ -244,7 +264,7 @@
   --glass-press-glow: rgba(255, 255, 255, 0.18);
   --glass-opaque: #242426;
   --scrim: rgba(0, 0, 0, 0.55);
-  --scroll-edge: rgba(0, 0, 0, 0.82);
+  --scroll-edge: rgba(5, 6, 10, 0.5);
 }
 
 /* Increase Contrast */

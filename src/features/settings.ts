@@ -9,6 +9,8 @@ import { toCSV, toJSON, recordsFromCSV } from "../data/io";
 import { toMarkdown } from "../adapters/ai-report";
 import { SCHEMA_VERSION } from "../data/schema";
 import { today } from "../data/time";
+import { capability, type DownloadsCap } from "../adapters/claude-runtime";
+import { emptyDataset } from "../data/validate";
 
 export const APP_VERSION = "1.0.0";
 
@@ -29,7 +31,12 @@ export function renderSettings(ctx: Ctx) {
         { value: "standard", label: "標準" }, { value: "reduced", label: "不透明" },
       ], s.glass, "set-glass")}</div></div>
     </div>
-    <p class="list-footer">「不透明」はナビゲーションやシートの透過をやめ、読みやすさを優先します。端末の「透明度を下げる」設定にも自動で従います。</p>
+    <div class="spacer"></div>
+    <div class="list">
+      <div class="field"><span class="label" id="refr-l">Liquid Glass の屈折</span>
+        <button type="button" role="switch" class="switch" aria-checked="${s.refraction !== false}" aria-labelledby="refr-l" data-action="toggle-refraction" style="margin-left:auto"><span class="knob"></span></button></div>
+    </div>
+    <p class="list-footer">「不透明」はガラスの透過をやめ、読みやすさを優先します。端末の「透明度を下げる」にも従います。屈折は Chrome 系ブラウザで表示されます（Safari ではぼかしのみ）。</p>
 
     <h2 class="list-header">目標</h2>
     <div class="list">
@@ -66,6 +73,7 @@ export function renderSettings(ctx: Ctx) {
       ${rowButton({ action: "open-backups", leading: iconBox("backup", "brown"), title: "バックアップと復元" })}
       ${rowButton({ action: "open-integrity", leading: iconBox("shield", "green"), title: "データの整合性チェック" })}
       ${rowButton({ action: "open-trash", leading: iconBox("trash", "gray"), title: "削除した記録", value: `${deleted}件` })}
+      ${ctx.store.data.extensions?.synthetic ? rowButton({ action: "clear-demo", leading: iconBox("trash", "red"), title: "サンプルデータを消す", sub: "架空のサンプルを消して空の状態に戻します", chevron: false }) : ""}
     </div>
 
     <h2 class="list-header">このアプリについて</h2>
@@ -108,6 +116,7 @@ registerActions({
   "set-theme": (ctx, el) => void ctx.safely(() => ctx.store.updateSettings({ theme: el.dataset.value as "system" })),
   "set-glass": (ctx, el) => void ctx.safely(() => ctx.store.updateSettings({ glass: el.dataset.value as "standard" })),
   "set-weekstart": (ctx, el) => void ctx.safely(() => ctx.store.updateSettings({ weekStartsOn: Number(el.dataset.value) as 0 | 1 })),
+  "toggle-refraction": (ctx) => void ctx.safely(() => ctx.store.updateSettings({ refraction: ctx.store.data.settings.refraction === false })),
   "goal-step": (ctx, el) => {
     const next = Math.min(16 * 3600, Math.max(0, ctx.store.data.settings.dailyGoalSec + Number(el.dataset.step)));
     ctx.safely(() => ctx.store.updateSettings({ dailyGoalSec: next }));
@@ -120,6 +129,17 @@ registerActions({
       f === "json" ? [`study-tracker-export-${stamp}.json`, toJSON(ds), "application/json"]
       : f === "csv" ? [`study-tracker-export-${stamp}.csv`, toCSV(ds), "text/csv;charset=utf-8"]
       : [`study-tracker-export-${stamp}.md`, toMarkdown(ds), "text/markdown;charset=utf-8"];
+    const dl = await capability<DownloadsCap>("downloads");
+    if (dl) {
+      try {
+        await dl.save({ filename: name, data: new Blob([text], { type }) });
+        return;
+      } catch {
+        /* declined or unavailable: fall through to clipboard */
+      }
+      if (await copyText(text)) ctx.toast("保存できなかったため、クリップボードにコピーしました");
+      return;
+    }
     if (download(name, text, type)) ctx.toast(`${name} を書き出しました`, { label: "コピー", run: async () => ctx.toast((await copyText(text)) ? "クリップボードにコピーしました" : "コピーできませんでした") });
     else if (await copyText(text)) ctx.toast("ダウンロードできないため、クリップボードにコピーしました");
     else ctx.toast("書き出しに失敗しました");
@@ -137,20 +157,26 @@ registerActions({
     try {
       if (file.name.toLowerCase().endsWith(".csv")) {
         const { records, issues } = recordsFromCSV(text);
-        if (issues.length && !confirm(`CSVに${issues.length}件の問題があります（例: ${issues[0].message}）。読み込める記録だけを追加しますか？`)) return;
+        if (issues.length && !(await ctx.confirm({ title: `CSVに${issues.length}件の問題があります`, message: `例: ${issues[0].message}。読み込める記録だけを追加しますか？`, ok: "追加する" }))) return;
         payload = { records };
       } else payload = JSON.parse(text);
     } catch (e) {
       ctx.toast(`読み込めませんでした: ${(e as Error).message}`);
       return;
     }
-    if (!confirm(`${file.name} を読み込みます。現在のデータは自動でバックアップされ、既存の記録は削除されません。続けますか？`)) return;
+    if (!(await ctx.confirm({ title: `${file.name} を読み込みますか？`, message: "今のデータを自動でバックアップしてから追加します。既存の記録は削除されません。", ok: "読み込む" }))) return;
     try {
       const r = await ctx.store.importDataset(payload);
       ctx.toast(`追加 ${r.added}件 · 更新 ${r.updated}件 · 変更なし ${r.skipped}件${r.issues.length ? ` · 注意 ${r.issues.length}件` : ""}`);
     } catch (e) {
       ctx.toast((e as Error).message);
     }
+  },
+  "clear-demo": async (ctx) => {
+    if (!ctx.store.data.extensions?.synthetic) return;
+    if (!(await ctx.confirm({ title: "サンプルデータを消しますか？", message: "サンプルを読み込んだ後に追加した記録も消えます。消す前の状態はバックアップに残ります。", ok: "消す", destructive: true }))) return;
+    await ctx.store.replaceDataset(emptyDataset(), "サンプル削除前のバックアップ");
+    ctx.toast("サンプルデータを消しました");
   },
   "open-integrity": (ctx) => ctx.openSheet("integrity"),
   "open-trash": (ctx) => ctx.openSheet("trash"),

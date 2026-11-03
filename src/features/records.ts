@@ -46,7 +46,7 @@ export function renderRecords(ctx: Ctx) {
         <input type="search" placeholder="学習内容・科目・タスクを検索" value="${f.q}" data-input="records-search" enterkeyhint="search" autocomplete="off">
       </label>
       ${chips}
-      <div class="segmented" role="radiogroup" aria-label="期間">
+      <div class="segmented" role="radiogroup" aria-label="期間" data-lens="records-range">
         ${(["all", "7", "30"] as const).map((v) => html`<button type="button" role="radio" aria-checked="${f.range === v}" data-action="records-range" data-value="${v}">${v === "all" ? "すべて" : `直近${v}日`}</button>`)}
       </div>
     </div>

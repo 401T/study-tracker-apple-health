@@ -102,6 +102,8 @@ export interface Settings {
   theme: "system" | "light" | "dark";
   /** "standard" = Liquid Glass; "reduced" = opaque controls (Reduce Transparency). */
   glass: "standard" | "reduced";
+  /** Liquid Glass refraction (Chromium only). Off = blur + sheen only. */
+  refraction: boolean;
   dailyGoalSec: number;
   /** 0 = Sunday, 1 = Monday. */
   weekStartsOn: 0 | 1;
@@ -143,6 +145,7 @@ export interface StudyDataset {
 export const DEFAULT_SETTINGS: Settings = {
   theme: "system",
   glass: "standard",
+  refraction: true,
   dailyGoalSec: 3 * 3600,
   weekStartsOn: 1,
 };

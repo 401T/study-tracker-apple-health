@@ -135,9 +135,9 @@ registerActions({
     for (const o of [...task.options]) if (o.value) o.hidden = !!o.dataset.subject && o.dataset.subject !== sel.value;
     if (task.selectedOptions[0]?.hidden) task.value = "";
   },
-  "delete-record": (ctx, el) => {
+  "delete-record": async (ctx, el) => {
     const id = el.dataset.id!;
-    if (!confirm("この記録を削除しますか？ 削除した記録は集計から除外されます（元に戻せます）。")) return;
+    if (!(await ctx.confirm({ title: "この記録を削除しますか？", message: "集計から外れます。削除した記録は「設定 → 削除した記録」から元に戻せます。", ok: "削除", destructive: true }))) return;
     if (!ctx.safely(() => ctx.store.deleteRecord(id))) return;
     ctx.closeSheet();
     ctx.toast("記録を削除しました", { label: "元に戻す", run: () => ctx.safely(() => ctx.store.restoreRecord(id)) });

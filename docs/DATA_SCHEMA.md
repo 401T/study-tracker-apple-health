@@ -118,6 +118,7 @@ durationSec= 3000（50分：これが「勉強時間」）
 |---|---|---|---|
 | `theme` | `system`\|`light`\|`dark` | `system` | 外観 |
 | `glass` | `standard`\|`reduced` | `standard` | ガラス効果（reduced = 不透明） |
+| `refraction` | boolean | `true` | Liquid Glass の屈折（v1 の追加項目。無い場合は true として読む） |
 | `dailyGoalSec` | integer | 10800（3時間） | 1日の目標（計画値） |
 | `weekStartsOn` | `0`\|`1` | `1`（月曜） | 週の始まり |
 

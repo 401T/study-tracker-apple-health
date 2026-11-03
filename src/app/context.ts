@@ -14,6 +14,8 @@ export interface UIState {
   subjectsShowArchived: boolean;
   /** Note typed in the timer sheet before the timer starts. */
   timerDraftNote?: string;
+  /** The Claude sheet is open (stream there instead of the summary card). */
+  coachSheetOpen?: boolean;
   proposals: PendingProposal[];
 }
 
@@ -42,6 +44,8 @@ export interface Ctx {
   toast(message: string, action?: { label: string; run: () => void }): void;
   /** Wraps a store mutation so read-only / save errors become a toast instead of a crash. */
   safely(fn: () => void): boolean;
+  /** In-page confirmation (window.confirm is unavailable inside claude.ai artifacts). */
+  confirm(opts: { title: string; message?: string; ok: string; destructive?: boolean }): Promise<boolean>;
 }
 
 export type ActionHandler = (ctx: Ctx, el: HTMLElement, ev: Event) => void | Promise<void>;

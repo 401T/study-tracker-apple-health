@@ -2,6 +2,19 @@
 
 この文書は、Muse の AI エージェント（または他の AI）が、このアプリに記録された勉強時間と学習内容を**正確に読み取り、根拠を示して分析する**ための説明書です。行動規則は `AGENT_INSTRUCTIONS.md` を参照してください。
 
+## 0. claude.ai 版での読み方（現在の運用）
+
+アプリは claude.ai のアーティファクト（https://claude.ai/artifact/CDUr23YzmeaD6UtMaRaaAw）として動いており、データは本人専用の DB にあります。Claude（Claude Code / claude.ai）は `ArtifactData` で本人として読めます。
+
+| 読むもの | collection | doc_id |
+|---|---|---|
+| 設定・科目・タスク・計画・メタ | `data/users/me` | `tracker` |
+| 記録（月ごと） | `data/users/me/tracker/months` | `YYYY-MM`（大きい月は `YYYY-MM_2` …） |
+| Claude のコメント履歴 | `data/users/me/tracker/coach` | 自動ID |
+| バックアップ | `data/users/me/tracker/backups` | 自動ID（本文は `…/backups/<id>/parts`） |
+
+月ドキュメントの `records` は `DATA_SCHEMA.md` の StudyRecord 配列です。書き込みはしないこと（アプリの保存と競合します）。変更が必要ならユーザーに確認してアプリから行ってもらいます。
+
 ## 1. データの取得方法（優先順）
 
 Muse がアーティファクトのデータを読む公式な手段（API / MCP / コネクタ）は、本リポジトリ作成時点の公開情報では**確認できませんでした**。そのため、特定の連携方式に依存しない3つの経路を用意しています。使える経路を上から順に試してください。

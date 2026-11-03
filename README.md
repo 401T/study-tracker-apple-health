@@ -2,7 +2,16 @@
 
 勉強時間を記録・分析する学習トラッカーの再設計版です。Apple Health の情報設計（カード単位のサマリー → 詳細グラフ）と Liquid Glass の考え方（操作レイヤーだけをガラスにする）を取り入れ、**既存データを壊さずに Muse のアーティファクトへ移植できる**こと、**AI エージェントが記録を正確に読んで分析できる**ことを目的に作られています。
 
-> **Muse へ統合する場合は [`MUSE_HANDOFF_PROMPT.md`](MUSE_HANDOFF_PROMPT.md) を Muse のチャットに貼り付けてください。**
+## 使い方（claude.ai 版）
+
+**アプリ: https://claude.ai/artifact/CDUr23YzmeaD6UtMaRaaAw** （本人のみ閲覧可）
+
+- 記録は claude.ai の本人専用ストレージ（`data/users/<id>/tracker`）に保存され、iPhone と Mac など端末間で同期します。
+- サマリーの「Claude のコメント」で、Claude が直近4週間の記録を読んでコメントします。「質問する」から記録について相談できます。
+- Claude Code / claude.ai の会話で「勉強記録を見てコメントして」と頼むと、同じデータを読み取って分析できます（読み取りのみ。書き換えは承認制）。
+- `dist/artifact.html` を `npm run build:artifact` で生成し、Artifact として公開しています。GitHub Pages など claude.ai 以外で開いた場合はこのブラウザに保存され、Claude の機能は表示されません。
+
+> Muse へ統合する場合の資料（[`MUSE_HANDOFF_PROMPT.md`](MUSE_HANDOFF_PROMPT.md) ほか）も残しています。
 
 | ライト | ダーク | 分析 | 記録の詳細 |
 |---|---|---|---|
@@ -18,7 +27,9 @@
 - **分析**: 週・月・6か月・年の棒グラフ（平均線・目標線、バー選択で値表示、キーボード操作可）、前期間比較、目標達成日数、科目配分、計画と実績、科目ごとの増減
 - **科目**: 累計・今週・今月、週の目標、8週の推移、タスク管理、アーカイブ
 - **設定**: テーマ（自動/ライト/ダーク）、ガラス効果（標準/不透明）、1日の目標、週の始まり、JSON/CSV/Markdown 書き出し、JSON/CSV 読み込み（マージ）、バックアップと復元、整合性チェック、削除した記録
+- **Claude のコメント・相談**: claude.ai 上で Claude が記録を読み、事実と解釈を分けてコメント（`src/features/coach.ts`）
 - **AI 連携**: 読み取り API `window.studyTracker`、DOM 内 JSON スナップショット、AI 用 Markdown レポート、承認制の変更提案
+- **Liquid Glass**: 色の滲む壁紙の上に、すりガラスのカード、屈折するタブバー・サイドバー・シート、選択位置へ移動するレンズ（自作 Molecule アプリのエンジンを移植。`src/design-system/liquid-glass.ts`）
 
 ## 実行方法
 

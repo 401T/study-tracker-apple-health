@@ -139,7 +139,7 @@ registerActions({
     ctx.openSheet("backups");
   },
   "restore-backup": async (ctx, el) => {
-    if (!confirm("このバックアップを復元しますか？ 現在のデータは復元前に自動でバックアップされます。")) return;
+    if (!(await ctx.confirm({ title: "このバックアップを復元しますか？", message: "今のデータも復元前に自動でバックアップします。", ok: "復元" }))) return;
     await ctx.store.restoreBackup(el.dataset.id!);
     backups = await ctx.store.listBackups();
     ctx.rerenderSheet();

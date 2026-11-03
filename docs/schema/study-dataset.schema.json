@@ -27,6 +27,7 @@
       "properties": {
         "theme": { "enum": ["system", "light", "dark"] },
         "glass": { "enum": ["standard", "reduced"] },
+        "refraction": { "type": "boolean", "description": "Liquid Glass refraction on/off (default true; absent in older data)" },
         "dailyGoalSec": { "$ref": "#/$defs/seconds", "description": "PLANNED daily study time" },
         "weekStartsOn": { "enum": [0, 1] },
         "extra": { "type": "object" }

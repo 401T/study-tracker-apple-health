@@ -20,7 +20,13 @@ export interface BackupInfo {
 export interface StorageAdapter {
   readonly name: string;
   load(): Promise<unknown | null>;
-  save(data: unknown): Promise<void>;
+  /**
+   * Persist the dataset. May resolve `{ merged }` when the adapter detected
+   * newer data from another device and saved the union instead.
+   */
+  save(data: unknown): Promise<void | { merged: unknown }>;
+  /** Optional: call `onRemoteChange` when another device saves. */
+  watch?(onRemoteChange: () => void): void;
   backup(label: string, data: unknown): Promise<BackupInfo>;
   listBackups(): Promise<BackupInfo[]>;
   readBackup(id: string): Promise<unknown | null>;

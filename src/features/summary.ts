@@ -13,6 +13,7 @@ import type { Ctx } from "../app/context";
 import { registerActions } from "../app/context";
 import type { StudyDataset, StudyRecord } from "../data/schema";
 import { syntheticDataset } from "../data/synthetic";
+import { coachCard } from "./coach";
 
 export function recordRow(ds: StudyDataset, r: StudyRecord, showDate = false) {
   const s = ds.subjects.find((x) => x.id === r.subjectId);
@@ -93,7 +94,7 @@ export function renderSummary(ctx: Ctx) {
           <div class="hero-main">
             ${metric(day.totalSec, "xl")}
             <p class="card-text">${goalLine}</p>
-            ${subjToday.length ? html`<p class="card-text">${subjToday.slice(0, 3).map((s, i) => html`${i ? " · " : ""}<span class="nowrap">${s.name} ${fmtDuration(s.sec)}</span>`)}</p>` : ""}
+            ${subjToday.length ? html`<p class="card-text">${subjToday.slice(0, 3).map((s, i, all) => html`<span class="nowrap">${s.name} ${fmtDuration(s.sec)}${i < all.length - 1 ? " ·" : ""}</span> `)}</p>` : ""}
             <div style="margin-top:4px">${ctx.store.data.activeSession
               ? html`<button type="button" class="btn small primary" data-action="open-timer">${raw(icon("timer"))}計測中のタイマー</button>`
               : html`<button type="button" class="btn small primary" data-action="open-timer">${raw(icon("play"))}タイマーを開始</button>`}</div>
@@ -101,6 +102,8 @@ export function renderSummary(ctx: Ctx) {
           ${ring(day.goalRatio, html`<span class="pct num">${pct}</span><span class="cap">目標達成</span>`, `今日の目標達成率 ${pct}`)}
         </div>
       </section>
+
+      ${coachCard(ctx)}
 
       <button type="button" class="card is-link" data-action="goto-analytics" data-kind="week" aria-label="今週の勉強時間 ${fmtDuration(week.totalSec)}、分析を開く">
         ${cardHeader({ icon: "calendar", label: "今週", meta: fmtRange(wStart, wEnd), chevron: true })}
@@ -188,7 +191,7 @@ registerActions({
       ctx.toast("既存のデータがあるため、サンプルは読み込みません");
       return;
     }
-    if (!confirm("架空のサンプルデータ（合成データ）を読み込みます。あとから設定でいつでも削除できます。")) return;
+    if (!(await ctx.confirm({ title: "サンプルデータを読み込みますか？", message: "架空の記録で画面を試せます。「設定 → サンプルデータを消す」でいつでも空に戻せます。", ok: "読み込む" }))) return;
     await ctx.store.replaceDataset(syntheticDataset(), "サンプル読込前のバックアップ");
     ctx.toast("サンプルデータを読み込みました（架空のデータです）");
   },

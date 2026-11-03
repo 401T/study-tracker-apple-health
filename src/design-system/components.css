@@ -226,7 +226,6 @@ button.row:active, a.row:active { background: var(--color-fill-tertiary); }
 .field.stacked { flex-direction: column; align-items: stretch; gap: var(--space-1); }
 .field.stacked label { min-width: 0; font: var(--type-footnote); color: var(--color-label-secondary); }
 .field input:focus, .field select:focus, .field textarea:focus { outline: none; }
-.field:focus-within { box-shadow: inset 3px 0 0 var(--color-accent); }
 .field-error { color: var(--color-negative); font: var(--type-footnote); padding: var(--space-2) var(--space-4) 0; }
 
 .search {
@@ -236,7 +235,7 @@ button.row:active, a.row:active { background: var(--color-fill-tertiary); }
 .search svg { width: 18px; height: 18px; flex: none; }
 .search input { flex: 1; border: 0; background: transparent; font: var(--type-body); color: var(--color-label); min-width: 0; }
 .search input:focus { outline: none; }
-.search:focus-within { box-shadow: 0 0 0 2px var(--color-accent); }
+.search:focus-within { box-shadow: 0 0 0 2px color-mix(in srgb, var(--tab-selected) 55%, transparent); }
 
 /* Stepper (duration in 5/15 min steps) */
 .stepper { display: inline-flex; align-items: center; gap: var(--space-2); }

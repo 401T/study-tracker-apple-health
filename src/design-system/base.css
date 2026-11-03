@@ -37,7 +37,7 @@ a { color: var(--color-accent-strong); }
 }
 
 :focus-visible {
-  outline: 3px solid var(--color-accent);
+  outline: 3px solid color-mix(in srgb, var(--tab-selected) 55%, transparent);
   outline-offset: 2px;
   border-radius: var(--radius-xs);
 }

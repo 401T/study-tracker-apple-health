@@ -1,0 +1,96 @@
+/* ==========================================================================
+   Liquid Glass — WEB APPROXIMATION.
+   Native Liquid Glass (SwiftUI glassEffect / UIGlassEffect) is not available in
+   browsers. This recreates its *visual roles* with CSS only:
+     - backdrop blur + saturation   → lensing/legibility of the "regular" variant
+     - top inner highlight + rim    → specular edge
+     - soft outer shadow            → separation from content
+     - pointer-follow glow on press → "illuminates from within" interaction
+   Applied ONLY to the functional layer (nav bar, tab bar, floating buttons,
+   sheets, popovers, toasts). Never to content cards.
+   ========================================================================== */
+
+.glass {
+  position: relative;
+  isolation: isolate;
+  background: var(--glass-tint);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  box-shadow:
+    var(--glass-shadow),
+    inset 0 1px 0 0 var(--glass-highlight),
+    inset 0 -1px 0 0 var(--glass-shade),
+    inset 0 0 0 0.5px var(--glass-border),
+    0 0 0 0.5px var(--glass-edge);
+}
+
+/* Specular sheen: a faint diagonal highlight, strongest at the top edge. */
+.glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 42%),
+    radial-gradient(120% 80% at 18% 0%, rgba(255, 255, 255, 0.18), transparent 60%);
+  mix-blend-mode: soft-light;
+}
+
+/* Interactive glass: glow follows the pointer while pressed (set via --mx/--my). */
+.glass-interactive {
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+.glass-interactive::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(80px circle at var(--mx, 50%) var(--my, 50%), var(--glass-press-glow), transparent 70%);
+  transition: opacity var(--dur-base) var(--ease-standard);
+}
+.glass-interactive.is-pressed::after { opacity: 1; }
+.glass-interactive.is-pressed { transform: scale(1.04); }
+
+/* Sheets use a thicker tint: they carry a lot of text (HIG: regular variant). */
+.glass-thick { background: var(--glass-tint-strong); }
+
+/* ---- Accessibility: Reduce Transparency (system or in-app setting) ---- */
+@media (prefers-reduced-transparency: reduce) {
+  .glass, .glass-thick {
+    background: var(--glass-opaque);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .glass::before { display: none; }
+}
+:root[data-glass="reduced"] .glass,
+:root[data-glass="reduced"] .glass-thick {
+  background: var(--glass-opaque);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+:root[data-glass="reduced"] .glass::before { display: none; }
+
+/* ---- Accessibility: Increase Contrast → solid fill + contrasting border ---- */
+@media (prefers-contrast: more) {
+  .glass, .glass-thick {
+    background: var(--glass-opaque);
+    box-shadow: var(--glass-shadow), 0 0 0 1.5px var(--color-label);
+  }
+  .glass::before { display: none; }
+}
+
+/* ---- Fallback where backdrop-filter is unsupported ---- */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass, .glass-thick { background: var(--glass-opaque); }
+}
+
+/* ---- Reduce Motion: no scaling/elastic feedback ---- */
+@media (prefers-reduced-motion: reduce) {
+  .glass-interactive, .glass-interactive.is-pressed { transform: none; transition: none; }
+  .glass-interactive::after { transition: none; }
+}

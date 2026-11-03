@@ -1,0 +1,25 @@
+{
+  "name": "study-tracker-apple-health",
+  "version": "1.0.0",
+  "description": "Apple Health × Liquid Glass study time tracker — portable single-file web app with AI-readable data layer",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc",
+    "fixtures": "vite-node scripts/generate-fixtures.ts",
+    "contrast": "node --experimental-strip-types scripts/check-contrast.ts"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.5",
+    "vite-plugin-singlefile": "^2.3.4",
+    "vitest": "^3.2.7"
+  },
+  "private": true
+}

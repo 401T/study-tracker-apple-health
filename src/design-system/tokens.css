@@ -1,0 +1,258 @@
+/* ==========================================================================
+   Design tokens — the single source of truth. Documented in docs/DESIGN_SYSTEM.md.
+   Light values on :root; dark values redefined under the dark selectors.
+   Components must reference tokens, never raw values.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* ---- Color: backgrounds (grouped style, like Health) ---- */
+  --color-bg: #f2f2f7;                 /* systemGroupedBackground */
+  --color-bg-elevated: #ffffff;        /* sheets */
+  --color-card: #ffffff;               /* secondarySystemGroupedBackground */
+  --color-card-inset: #f2f2f7;         /* fills inside cards */
+  --color-fill: rgba(120, 120, 128, 0.16);
+  --color-fill-secondary: rgba(120, 120, 128, 0.12);
+  --color-fill-tertiary: rgba(118, 118, 128, 0.08);
+
+  /* ---- Color: labels. Secondary/tertiary are darker than iOS defaults
+     so small text meets WCAG AA 4.5:1 on white (see DESIGN_RESEARCH §7). ---- */
+  --color-label: #000000;
+  --color-label-secondary: rgba(60, 60, 67, 0.78);   /* ≈ #67676c, 5.6:1 on #fff */
+  --color-label-tertiary: rgba(60, 60, 67, 0.62);    /* decorative / large only */
+  --color-separator: rgba(60, 60, 67, 0.22);
+  --color-separator-opaque: #c6c6c8;
+
+  /* ---- Color: semantic ---- */
+  --color-accent: #5856d6;             /* Study accent (indigo family) */
+  --color-accent-strong: #3634a3;      /* accent text on light bg: 9.0:1 */
+  --color-accent-soft: rgba(88, 86, 214, 0.12);
+  --color-on-accent: #ffffff;
+  --color-positive: #1e7b34;           /* accessible green for text (5.3:1) */
+  --color-negative: #d70015;           /* accessible red for text */
+  --color-warning: #c93400;
+
+  /* ---- Color: subject palette (chart + category). Each has a fill and a
+     text-safe variant ("-ink") for labels on light backgrounds. ---- */
+  --subject-blue: #007aff;    --subject-blue-ink: #0040dd;
+  --subject-green: #34c759;   --subject-green-ink: #248a3d;
+  --subject-orange: #ff9500;  --subject-orange-ink: #c93400;
+  --subject-pink: #ff2d55;    --subject-pink-ink: #d30f45;
+  --subject-purple: #af52de;  --subject-purple-ink: #8944ab;
+  --subject-teal: #30b0c7;    --subject-teal-ink: #0071a4;
+  --subject-yellow: #ffcc00;  --subject-yellow-ink: #a05a00;
+  --subject-red: #ff3b30;     --subject-red-ink: #d70015;
+  --subject-indigo: #5856d6;  --subject-indigo-ink: #3634a3;
+  --subject-brown: #a2845e;   --subject-brown-ink: #7f6545;
+  --subject-gray: #8e8e93;    --subject-gray-ink: #6c6c70;
+
+  /* ---- Chart tokens ---- */
+  --chart-bar: var(--color-accent);
+  --chart-bar-muted: rgba(88, 86, 214, 0.35);
+  --chart-grid: rgba(60, 60, 67, 0.14);
+  --chart-axis-label: var(--color-label-secondary);
+  --chart-goal: #c93400;               /* goal rule: 5.3:1 on card */
+  --chart-average: var(--color-label-secondary);
+  --chart-selection: rgba(88, 86, 214, 0.10);
+  --chart-separator: var(--color-card); /* gap between stacked segments */
+
+  /* ---- Typography (iOS Dynamic Type "Large" defaults, in rem @16px root
+     so browser text-size preferences scale everything) ---- */
+  --font-text: system-ui, -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+    "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
+  --font-numeric: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Hiragino Sans",
+    "Noto Sans JP", sans-serif;
+  --font-mono-numeric: ui-monospace, "SF Mono", Menlo, monospace;
+
+  --type-large-title: 700 2.125rem/1.2 var(--font-text);   /* 34 / 41 */
+  --type-title1: 700 1.75rem/1.214 var(--font-text);       /* 28 / 34 */
+  --type-title2: 700 1.375rem/1.27 var(--font-text);       /* 22 / 28 */
+  --type-title3: 600 1.25rem/1.25 var(--font-text);        /* 20 / 25 */
+  --type-headline: 600 1.0625rem/1.3 var(--font-text);     /* 17 / 22 */
+  --type-body: 400 1.0625rem/1.4 var(--font-text);         /* 17, JP-friendly leading */
+  --type-callout: 400 1rem/1.35 var(--font-text);          /* 16 / 21 */
+  --type-subhead: 400 0.9375rem/1.35 var(--font-text);     /* 15 / 20 */
+  --type-footnote: 400 0.8125rem/1.38 var(--font-text);    /* 13 / 18 */
+  --type-caption1: 400 0.75rem/1.33 var(--font-text);      /* 12 / 16 */
+  --type-caption2: 400 0.6875rem/1.2 var(--font-text);     /* 11 / 13 — minimum size */
+
+  --type-metric-xl: 700 3rem/1 var(--font-numeric);        /* hero number */
+  --type-metric-l: 700 2rem/1.05 var(--font-numeric);      /* card number */
+  --type-metric-m: 600 1.375rem/1.1 var(--font-numeric);   /* list number */
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-caps: 0.02em;
+
+  /* ---- Spacing (4pt grid) ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --gutter: 16px;                 /* iPhone layout margin */
+  --content-max: 720px;
+  --tap-min: 44px;                /* HIG default control size */
+
+  /* ---- Radius (concentric: inner = outer − padding) ---- */
+  --radius-xs: 6px;
+  --radius-s: 10px;
+  --radius-m: 14px;
+  --radius-card: 22px;
+  --radius-sheet: 34px;
+  --radius-capsule: 999px;
+
+  /* ---- Shadows (content layer stays flat; depth is for floating layer) ---- */
+  --shadow-card: 0 0 0 0.5px rgba(0, 0, 0, 0.02);
+  --shadow-float: 0 8px 28px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-sheet: 0 -6px 40px rgba(0, 0, 0, 0.18);
+
+  /* ---- Material: Liquid Glass (web approximation, see glass.css) ---- */
+  --glass-tint: rgba(255, 255, 255, 0.62);
+  --glass-tint-strong: rgba(255, 255, 255, 0.82);
+  --glass-blur: 22px;
+  --glass-saturate: 1.8;
+  --glass-border: rgba(255, 255, 255, 0.75);
+  --glass-edge: rgba(0, 0, 0, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.95);
+  --glass-shade: rgba(0, 0, 0, 0.05);
+  --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.10), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --glass-press-glow: rgba(255, 255, 255, 0.55);
+  --glass-opaque: #f9f9fb;          /* Reduce Transparency fallback */
+  --scrim: rgba(0, 0, 0, 0.32);
+  --scroll-edge: rgba(242, 242, 247, 0.85);
+
+  /* ---- Motion ---- */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-spring: cubic-bezier(0.32, 1.25, 0.5, 1);   /* light overshoot */
+  --dur-fast: 140ms;
+  --dur-base: 240ms;
+  --dur-slow: 380ms;
+
+  /* ---- Icon sizes ---- */
+  --icon-s: 16px;
+  --icon-m: 20px;
+  --icon-l: 24px;
+  --icon-stroke: 1.9;
+}
+
+/* Dark appearance: system preference, unless the user forced light. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --color-bg: #000000;
+    --color-bg-elevated: #1c1c1e;
+    --color-card: #1c1c1e;
+    --color-card-inset: #2c2c2e;
+    --color-fill: rgba(120, 120, 128, 0.36);
+    --color-fill-secondary: rgba(120, 120, 128, 0.32);
+    --color-fill-tertiary: rgba(118, 118, 128, 0.24);
+    --color-label: #ffffff;
+    --color-label-secondary: rgba(235, 235, 245, 0.68);
+    --color-label-tertiary: rgba(235, 235, 245, 0.45);
+    --color-separator: rgba(84, 84, 88, 0.6);
+    --color-separator-opaque: #38383a;
+    --color-accent: #5e5ce6;
+    --color-accent-strong: #a5a3ff;
+    --color-accent-soft: rgba(125, 122, 255, 0.2);
+    --color-positive: #30d158;
+    --color-negative: #ff6961;
+    --color-warning: #ffb340;
+    --subject-blue: #0a84ff;    --subject-blue-ink: #409cff;
+    --subject-green: #30d158;   --subject-green-ink: #30d158;
+    --subject-orange: #ff9f0a;  --subject-orange-ink: #ffb340;
+    --subject-pink: #ff375f;    --subject-pink-ink: #ff6482;
+    --subject-purple: #bf5af2;  --subject-purple-ink: #da8fff;
+    --subject-teal: #40c8e0;    --subject-teal-ink: #5de6ff;
+    --subject-yellow: #ffd60a;  --subject-yellow-ink: #ffd426;
+    --subject-red: #ff453a;     --subject-red-ink: #ff6961;
+    --subject-indigo: #5e5ce6;  --subject-indigo-ink: #7d7aff;
+    --subject-brown: #ac8e68;   --subject-brown-ink: #c4a77f;
+    --subject-gray: #8e8e93;    --subject-gray-ink: #aeaeb2;
+    --chart-bar: #7d7aff;
+    --chart-bar-muted: rgba(125, 122, 255, 0.4);
+    --chart-grid: rgba(235, 235, 245, 0.14);
+    --chart-goal: #ff9f0a;
+    --chart-selection: rgba(125, 122, 255, 0.16);
+    --shadow-card: none;
+    --shadow-float: 0 8px 28px rgba(0, 0, 0, 0.5);
+    --shadow-sheet: 0 -6px 40px rgba(0, 0, 0, 0.6);
+    --glass-tint: rgba(40, 40, 44, 0.55);
+    --glass-tint-strong: rgba(44, 44, 48, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.16);
+    --glass-edge: rgba(0, 0, 0, 0.5);
+    --glass-highlight: rgba(255, 255, 255, 0.28);
+    --glass-shade: rgba(0, 0, 0, 0.25);
+    --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3);
+    --glass-press-glow: rgba(255, 255, 255, 0.18);
+    --glass-opaque: #242426;
+    --scrim: rgba(0, 0, 0, 0.55);
+    --scroll-edge: rgba(0, 0, 0, 0.82);
+  }
+}
+
+/* Forced dark (Settings → テーマ → ダーク). Same values as above. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #000000;
+  --color-bg-elevated: #1c1c1e;
+  --color-card: #1c1c1e;
+  --color-card-inset: #2c2c2e;
+  --color-fill: rgba(120, 120, 128, 0.36);
+  --color-fill-secondary: rgba(120, 120, 128, 0.32);
+  --color-fill-tertiary: rgba(118, 118, 128, 0.24);
+  --color-label: #ffffff;
+  --color-label-secondary: rgba(235, 235, 245, 0.68);
+  --color-label-tertiary: rgba(235, 235, 245, 0.45);
+  --color-separator: rgba(84, 84, 88, 0.6);
+  --color-separator-opaque: #38383a;
+  --color-accent: #5e5ce6;
+  --color-accent-strong: #a5a3ff;
+  --color-accent-soft: rgba(125, 122, 255, 0.2);
+  --color-positive: #30d158;
+  --color-negative: #ff6961;
+  --color-warning: #ffb340;
+  --subject-blue: #0a84ff;    --subject-blue-ink: #409cff;
+  --subject-green: #30d158;   --subject-green-ink: #30d158;
+  --subject-orange: #ff9f0a;  --subject-orange-ink: #ffb340;
+  --subject-pink: #ff375f;    --subject-pink-ink: #ff6482;
+  --subject-purple: #bf5af2;  --subject-purple-ink: #da8fff;
+  --subject-teal: #40c8e0;    --subject-teal-ink: #5de6ff;
+  --subject-yellow: #ffd60a;  --subject-yellow-ink: #ffd426;
+  --subject-red: #ff453a;     --subject-red-ink: #ff6961;
+  --subject-indigo: #5e5ce6;  --subject-indigo-ink: #7d7aff;
+  --subject-brown: #ac8e68;   --subject-brown-ink: #c4a77f;
+  --subject-gray: #8e8e93;    --subject-gray-ink: #aeaeb2;
+  --chart-bar: #7d7aff;
+    --chart-bar-muted: rgba(125, 122, 255, 0.4);
+  --chart-grid: rgba(235, 235, 245, 0.14);
+  --chart-goal: #ff9f0a;
+  --chart-selection: rgba(125, 122, 255, 0.16);
+  --shadow-card: none;
+  --shadow-float: 0 8px 28px rgba(0, 0, 0, 0.5);
+  --shadow-sheet: 0 -6px 40px rgba(0, 0, 0, 0.6);
+  --glass-tint: rgba(40, 40, 44, 0.55);
+  --glass-tint-strong: rgba(44, 44, 48, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.16);
+  --glass-edge: rgba(0, 0, 0, 0.5);
+  --glass-highlight: rgba(255, 255, 255, 0.28);
+  --glass-shade: rgba(0, 0, 0, 0.25);
+  --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --glass-press-glow: rgba(255, 255, 255, 0.18);
+  --glass-opaque: #242426;
+  --scrim: rgba(0, 0, 0, 0.55);
+  --scroll-edge: rgba(0, 0, 0, 0.82);
+}
+
+/* Increase Contrast */
+@media (prefers-contrast: more) {
+  :root {
+    --color-label-secondary: rgba(60, 60, 67, 0.92);
+    --color-separator: rgba(60, 60, 67, 0.5);
+    --glass-border: rgba(0, 0, 0, 0.6);
+    --chart-grid: rgba(60, 60, 67, 0.35);
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "recordCount": 229,
+  "activeRecordCount": 229,
+  "totalDurationSec": 949800,
+  "bySubjectSec": {
+    "sub_demo_4": 169800,
+    "sub_demo_2": 174000,
+    "sub_demo_5": 193800,
+    "sub_demo_1": 204900,
+    "sub_demo_3": 207300
+  },
+  "subjectCount": 5,
+  "taskCount": 5,
+  "planCount": 4,
+  "firstDate": "2026-07-06",
+  "lastDate": "2026-11-03",
+  "recordsHash": "75c4feb7"
+}

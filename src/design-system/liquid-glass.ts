@@ -93,8 +93,8 @@ function makeMap(w: number, h: number, r: number, mode: "bevel" | "dome"): strin
 }
 
 /** Refraction filter with slight chromatic aberration (R, G, B displaced by different amounts). */
-function filterFor(w: number, h: number, r: number, mode: "bevel" | "dome"): string {
-  const key = `${w}x${h}r${Math.round(r)}${mode}`;
+function filterFor(w: number, h: number, r: number, mode: "bevel" | "dome", chroma = true): string {
+  const key = `${w}x${h}r${Math.round(r)}${mode}${chroma ? "c" : ""}`;
   const hit = filters.get(key);
   if (hit) return hit;
   const id = `lg${filters.size}`;
@@ -103,13 +103,14 @@ function filterFor(w: number, h: number, r: number, mode: "bevel" | "dome"): str
   for (const [k, v] of Object.entries({ "color-interpolation-filters": "sRGB", filterUnits: "userSpaceOnUse", primitiveUnits: "userSpaceOnUse", x: 0, y: 0, width: w, height: h }))
     f.setAttribute(k, String(v));
   const short = Math.min(w, h);
-  const base = mode === "dome" ? -Math.min(26, short * 0.5) : short < 60 ? short * 0.22 : Math.min(60, short * 0.9);
+  // Bars and buttons (< 90px tall) bend only gently; strong bending over text looks smeared.
+  const base = mode === "dome" ? -Math.min(26, short * 0.5) : short < 90 ? short * 0.2 : Math.min(60, short * 0.9);
   const ca = mode === "dome" ? 0.06 : 0.08;
   const disp = (s: number, res: string) =>
     `<feDisplacementMap in="SourceGraphic" in2="map" scale="${(base * s).toFixed(1)}" xChannelSelector="R" yChannelSelector="G" result="${res}"/>`;
   const map = `<feImage href="${makeMap(w, h, r, mode)}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none" result="map"/>`;
   f.innerHTML =
-    w * h > 40000
+    w * h > 40000 || !chroma
       ? map + disp(1, "out")
       : map + disp(1, "dr") + disp(1 - ca, "dg") + disp(1 - 2 * ca, "db") +
         '<feColorMatrix in="dr" type="matrix" values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" result="r"/>' +
@@ -135,9 +136,10 @@ function apply(el: HTMLElement) {
   if (w < 4 || h < 4) return;
   const r = Math.min(parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0, w / 2, h / 2);
   const mode = el.dataset.refract === "dome" ? "dome" : "bevel";
-  const id = filterFor(Math.ceil(w / 2) * 2, Math.ceil(h / 2) * 2, r, mode);
-  const blur = el.dataset.blur ?? (el.hasAttribute("data-glass") ? "var(--glass-blur)" : mode === "dome" ? "0px" : h < 60 ? "8px" : "4px");
-  el.style.backdropFilter = `url(#${id}) blur(${blur}) saturate(190%) brightness(1.04)`;
+  const id = filterFor(Math.ceil(w / 2) * 2, Math.ceil(h / 2) * 2, r, mode, el.dataset.chroma !== "off");
+  const blur = el.dataset.blur ?? (el.hasAttribute("data-glass") ? "var(--glass-blur)" : mode === "dome" ? "0px" : h < 90 ? "10px" : "4px");
+  // Blur first, then bend: refracting an unblurred backdrop leaves sharp, smeared text under the glass.
+  el.style.backdropFilter = `blur(${blur}) url(#${id}) saturate(190%) brightness(1.04)`;
 }
 
 function track(el: HTMLElement) {

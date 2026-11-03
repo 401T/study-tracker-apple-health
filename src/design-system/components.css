@@ -64,8 +64,7 @@
   transition: background var(--dur-fast) var(--ease-standard), color var(--dur-fast);
 }
 .tab svg { width: 24px; height: 24px; }
-.tab[aria-current="page"] { color: var(--color-accent-strong); background: var(--color-fill-tertiary); }
-:root[data-theme="dark"] .tab[aria-current="page"] { color: var(--color-accent-strong); }
+.tab[aria-current="page"] { color: var(--tab-selected); }
 
 /* Minimized on scroll-down: icons only, shorter. */
 .bottom-dock.is-minimized .tabbar { height: 50px; }
@@ -458,7 +457,7 @@ body { background: var(--color-bg); }
 .tabbar { height: 64px; padding: 5px; border-radius: var(--radius-capsule); }
 .tabbar .tabs { display: flex; flex: 1; gap: 2px; height: 100%; }
 .tab { background: transparent !important; color: var(--color-label); }
-.tab[aria-current="page"] { color: var(--color-accent-strong); }
+.tab[aria-current="page"] { color: var(--tab-selected); }
 .bottom-dock.is-minimized .tabbar { height: 52px; }
 .fab { width: 64px; height: 64px; color: var(--color-accent-strong); }
 .bottom-dock.is-minimized .fab { width: 52px; height: 52px; }
@@ -544,7 +543,7 @@ body { background: var(--color-bg); }
   .nav { display: grid; gap: 2px; }
   .nav-item { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 14px; border: 0; border-radius: var(--radius-capsule);
     background: transparent; color: var(--color-label); font: var(--type-body); text-align: left; }
-  .nav-item svg { width: 22px; height: 22px; color: var(--color-accent-strong); }
+  .nav-item svg { width: 22px; height: 22px; color: var(--color-label-secondary); }
   .nav-item[aria-current="page"] { font-weight: 600; }
   .side-today { margin-top: auto; display: grid; gap: 10px; }
   .side-ring { display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: var(--radius-card); background: var(--color-card); box-shadow: inset 0 0 0 0.5px var(--cell-edge); }
@@ -577,3 +576,75 @@ body { background: var(--color-bg); }
 details.history summary { display: flex; justify-content: space-between; gap: 12px; cursor: pointer; font: var(--type-subhead); font-weight: 600; list-style: none; }
 details.history summary::-webkit-details-marker { display: none; }
 details.history[open] summary { margin-bottom: 10px; }
+
+/* ==========================================================================
+   v3 — tab bar and press feedback, matched to the Molecule segment control:
+   clean capsule track, round glass lens that glides to the selection,
+   selected icon + label in blue, neutral press light, no scaling.
+   ========================================================================== */
+
+/* Press feedback: neutral light from the touch point only. Nothing scales
+   (scaling a refracting element misaligns its filter and fringes in color). */
+.btn.is-pressed, .chip.is-pressed, .round-button.is-pressed, .tab.is-pressed, .bar-button.is-pressed,
+.glass-interactive.is-pressed, .nav-item.is-pressed, .segmented > button.is-pressed { transform: none; }
+.btn::after, .chip::after, .tab::after, .nav-item::after, .round-button::after, .bar-button::after, .segmented > button::after,
+.glass-interactive::after {
+  background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), var(--lg-glow), transparent 62%);
+  z-index: -1;
+}
+.is-pressed::after { opacity: 0.45; transition: opacity 50ms; }
+.btn, .chip, .tab, .nav-item, .round-button, .bar-button, .segmented > button { isolation: isolate; }
+.btn.primary::after { background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, 0.5), transparent 62%); }
+
+/* Keyboard focus only (never on click), drawn inside the capsule. */
+.tab:focus-visible, .nav-item:focus-visible, .segmented > button:focus-visible { outline: 2px solid var(--tab-selected); outline-offset: -3px; border-radius: var(--radius-capsule); }
+
+/* Glass rim shared by the lens: bright top-left, softer bottom-right. */
+[data-lens] > .lens {
+  isolation: isolate;
+  box-shadow: inset 0 1px 0.5px var(--lg-hi), inset 0 -1px 1px var(--lg-lo), inset 0 0 0 0.5px var(--lg-edge), 0 4px 14px rgba(0, 0, 0, 0.12);
+  transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1), width 260ms cubic-bezier(0.2, 0.8, 0.2, 1), height 260ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 150ms;
+}
+[data-lens] > .lens::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; z-index: -1;
+  background: linear-gradient(155deg, var(--lg-hi), transparent 32%, transparent 62%, var(--lg-lo) 88%, var(--lg-hi));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+}
+
+/* Bottom tab bar: glass panel → inner track → lens. */
+.tabbar {
+  height: auto; padding: 6px; border-radius: var(--radius-capsule);
+  background: var(--bar-tint);
+  box-shadow: var(--glass-shadow), inset 0 1px 0.5px var(--lg-hi), inset 0 -1px 1px var(--lg-lo), inset 0 0 0 0.5px var(--lg-edge);
+}
+.tabbar::before { display: none; }
+.tabbar .tabs {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; height: auto; padding: 4px;
+  border-radius: var(--radius-capsule); background: var(--color-fill-tertiary);
+}
+.tab {
+  min-width: 0; padding: 7px 0 6px; gap: 2px; border-radius: var(--radius-capsule);
+  font: 600 0.625rem/1.15 var(--font-text); color: var(--color-label); transition: color 150ms;
+}
+.tab svg { width: 23px; height: 23px; }
+.tabs > .tab[aria-current="page"] { color: var(--tab-selected); }
+.bottom-dock.is-minimized .tabbar { height: auto; }
+.bottom-dock.is-minimized .tab { padding: 8px 0; }
+
+/* Floating action button: same glass recipe as the bar. */
+.fab {
+  width: 64px; height: 64px; background: var(--bar-tint); color: var(--tab-selected);
+  box-shadow: var(--glass-shadow), inset 0 1px 0.5px var(--lg-hi), inset 0 -1px 1px var(--lg-lo), inset 0 0 0 0.5px var(--lg-edge);
+}
+.fab::before { display: none; }
+.fab.is-running { background: var(--tab-selected); color: #fff; }
+.bottom-dock.is-minimized .fab { width: 56px; height: 56px; }
+
+/* Sidebar nav and segmented controls use the same lens and blue selection. */
+.nav[data-lens] > .lens { border-radius: 16px; }
+.nav-item { border-radius: 16px; }
+.nav > .nav-item[aria-current="page"] { color: var(--tab-selected); }
+.nav > .nav-item[aria-current="page"] svg { color: var(--tab-selected); }
+
+.accessory { background: var(--bar-tint); box-shadow: var(--glass-shadow), inset 0 1px 0.5px var(--lg-hi), inset 0 -1px 1px var(--lg-lo), inset 0 0 0 0.5px var(--lg-edge); }
+.accessory::before { display: none; }

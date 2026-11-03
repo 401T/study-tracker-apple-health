@@ -18,6 +18,12 @@
   --cell-shadow: 0 10px 30px rgba(30, 40, 80, 0.07), 0 1px 2px rgba(30, 40, 80, 0.05);
   --blob1: #8db4ff;  --blob2: #ffb0cd;  --blob3: #a2ebc6;  --blob4: #ffd590;  /* wallpaper */
   --lens: rgba(255, 255, 255, 0.82);
+  --lg-hi: rgba(255, 255, 255, 0.95);       /* specular rim, top-left */
+  --lg-lo: rgba(255, 255, 255, 0.4);         /* specular rim, bottom-right */
+  --lg-edge: rgba(0, 0, 0, 0.06);
+  --lg-glow: rgba(255, 255, 255, 0.9);       /* press light (always neutral, never tinted) */
+  --tab-selected: #0a6cff;                   /* selected tab icon + label (system blue) */
+  --bar-tint: rgba(248, 249, 252, 0.86);
   --lens-shadow: 0 4px 14px rgba(20, 30, 60, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.95);
   --color-fill: rgba(120, 120, 128, 0.16);
   --color-fill-secondary: rgba(120, 120, 128, 0.12);
@@ -160,6 +166,18 @@
     --cell-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
     --blob1: #17408a;  --blob2: #561c4a;  --blob3: #0f4d3a;  --blob4: #573c12;
     --lens: rgba(255, 255, 255, 0.2);
+  --lg-hi: rgba(255, 255, 255, 0.42);
+  --lg-lo: rgba(255, 255, 255, 0.1);
+  --lg-edge: rgba(255, 255, 255, 0.06);
+  --lg-glow: rgba(255, 255, 255, 0.35);
+  --tab-selected: #3d9bff;
+  --bar-tint: rgba(30, 31, 36, 0.84);
+    --lg-hi: rgba(255, 255, 255, 0.42);
+    --lg-lo: rgba(255, 255, 255, 0.1);
+    --lg-edge: rgba(255, 255, 255, 0.06);
+    --lg-glow: rgba(255, 255, 255, 0.35);
+    --tab-selected: #3d9bff;
+    --bar-tint: rgba(30, 31, 36, 0.84);
     --lens-shadow: 0 4px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
     --color-fill: rgba(120, 120, 128, 0.36);
     --color-fill-secondary: rgba(120, 120, 128, 0.32);

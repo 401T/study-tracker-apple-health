@@ -107,8 +107,8 @@ export async function boot(root: HTMLElement) {
       <div class="bottom-dock" id="dock">
         <div id="accessory-slot" class="dock-row"></div>
         <div class="dock-row">
-          <nav class="tabbar glass" data-refract aria-label="メイン"><div class="tabs" id="tabs" data-lens="tabs"></div></nav>
-          <button type="button" class="fab glass glass-interactive" data-refract id="fab" data-action="open-timer"></button>
+          <nav class="tabbar glass" data-refract data-chroma="off" data-blur="26px" aria-label="メイン"><div class="tabs" id="tabs" data-lens="tabs"></div></nav>
+          <button type="button" class="fab glass" data-refract data-chroma="off" data-blur="26px" id="fab" data-action="open-timer"></button>
         </div>
       </div>
       <div class="sheet-layer" id="sheet-layer" hidden></div>
@@ -193,7 +193,7 @@ export async function boot(root: HTMLElement) {
       ? (() => {
           const color = store.data.subjects.find((x) => x.id === s.subjectId)?.color ?? "gray";
           const t = sessionTimes(s);
-          return html`<div class="accessory glass" data-refract>
+          return html`<div class="accessory glass" data-refract data-chroma="off" data-blur="26px">
             <button type="button" class="accessory-open" data-action="open-timer" aria-label="タイマーを開く: ${subjectName(store.data, s.subjectId)}、${t.paused ? "一時停止中" : "計測中"}">
               <span class="accessory-dot" style="background: var(--subject-${color})"></span>
               <span class="accessory-text"><span class="accessory-title">${subjectName(store.data, s.subjectId)}</span>
@@ -421,7 +421,6 @@ export async function boot(root: HTMLElement) {
       sessionStorageSet("sah:tab", t);
       window.scrollTo(0, 0);
       renderScreen();
-      screen.focus({ preventScroll: true });
     },
     "sheet-close": (c) => c.closeSheet(),
     "open-proposals": (c) => c.openSheet("proposals"),
